@@ -1,0 +1,57 @@
+
+t.exe:     file format elf32-pic30
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .reset        00000004  00000000  00000000  000000b4  2**1
+                  CONTENTS, ALLOC, LOAD, CODE, ABSOLUTE
+  1 .ndata        0000000a  00000800  00000800  00000174  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD, NEAR
+  2 .ndconst      0000000a  0000080a  0000080a  00000188  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD, NEAR
+  3 .data         0000000a  00000814  00000814  0000019c  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD
+  4 .dconst       0000000a  0000081e  0000081e  000001b0  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD
+  5 .const        0000000a  00008100  00000100  000000bc  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, PSV, ABSOLUTE
+  6 .dinit        00000042  0000010a  0000010a  000000d0  2**1
+                  CONTENTS, ALLOC, LOAD, CODE, ABSOLUTE
+  7 .text         0000000a  0000014c  0000014c  00000154  2**1
+                  CONTENTS, ALLOC, LOAD, CODE, ABSOLUTE
+  8 .isr          00000004  00000156  00000156  00000168  2**1
+                  CONTENTS, ALLOC, LOAD, CODE, ABSOLUTE
+  9 .shared.dinit 00000002  0000015a  0000015a  00000170  2**1
+                  CONTENTS, ALLOC, LOAD, CODE, ABSOLUTE
+
+t.exe:     file format elf32-pic30
+
+Contents of section .reset:
+ 0000 4c0104 000000                L.....      
+Contents of section .ndata:
+ 0800 20212223 24252627 2829                !"#$%&'()      
+Contents of section .ndconst:
+ 080a 30313233 34353637 3839               0123456789      
+Contents of section .data:
+ 0814 40414243 44454647 4849               @ABCDEFGHI      
+Contents of section .dconst:
+ 081e 50515253 54555657 5859               PQRSTUVWXY      
+Contents of section .const:
+ 8100 60616263 64656667 6869               `abcdefghi      
+Contents of section .dinit:
+ 010a 140800 0a0000 010000 404100  .........@A.
+ 0112 424300 444500 464700 484900  BC.DE.FG.HI.
+ 011a 000800 0a0000 010000 202100  ......... !.
+ 0122 222300 242500 262700 282900  "#.$%.&'.().
+ 012a 0a0800 0a0000 010000 303100  .........01.
+ 0132 323300 343500 363700 383900  23.45.67.89.
+ 013a 1e0800 0a0000 010000 505100  .........PQ.
+ 0142 525300 545500 565700 585900  RS.TU.VW.XY.
+ 014a 5a0180                       Z..         
+Contents of section .text:
+ 014c 101100 121300 141500 161700  ............
+ 0154 181900                       ...         
+Contents of section .isr:
+ 0156 0040da 0000fe                .@....      
+Contents of section .shared.dinit:
+ 015a 000000                       ...         

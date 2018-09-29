@@ -1,0 +1,2272 @@
+This is
+/home/ravi/dev/mainline/build_20160426/src/XC_GCC/cloog/doc/cloog.info,
+produced by makeinfo version 4.8 from
+/home/ravi/dev/mainline/build_20160426/src/XC_GCC/cloog/doc/cloog.texi.
+
+INFO-DIR-SECTION Software libraries
+START-INFO-DIR-ENTRY
+* cloog: (cloog).  A loop generator for scanning polyhedra
+END-INFO-DIR-ENTRY
+
+   This manual is for CLooG version , a software which generates loops
+for scanning Z-polyhedra. That is, CLooG produces a code visiting each
+integral point of a union of parametrized polyhedra. CLooG is designed
+to avoid control overhead and to produce a very efficient code.
+
+   It would be quite kind to refer the following paper in any
+publication that results from the use of the CLooG software or its
+library:
+
+     @InProceedings{Bas04,
+       author =    {C. Bastoul},
+       title =     {Code Generation in the Polyhedral Model
+                    Is Easier Than You Think},
+       booktitle = {PACT'13 IEEE International Conference on
+                    Parallel Architecture and Compilation Techniques},
+       year =      2004,
+       pages =     {7--16},
+       month =     {september},
+       address =   {Juan-les-Pins}
+     }
+
+   Copyright (C) 2002-2005 Ce'dric Bastoul.
+
+   Permission is granted to copy, distribute and/or modify this
+document under the terms of the GNU Free Documentation License, Version
+1.2 published by the Free Software Foundation. To receive a copy of the
+GNU Free Documentation License, write to the Free Software Foundation,
+Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA.
+
+
+File: cloog.info,  Node: Top,  Next: Introduction,  Up: (dir)
+
+CLooG
+*****
+
+This manual is for CLooG version , a software which generates loops for
+scanning Z-polyhedra. That is, CLooG produces a code visiting each
+integral point of a union of parametrized polyhedra. CLooG is designed
+to avoid control overhead and to produce a very efficient code.
+
+   It would be quite kind to refer the following paper in any
+publication that results from the use of the CLooG software or its
+library:
+
+     @InProceedings{Bas04,
+       author =    {C. Bastoul},
+       title =     {Code Generation in the Polyhedral Model
+                    Is Easier Than You Think},
+       booktitle = {PACT'13 IEEE International Conference on
+                    Parallel Architecture and Compilation Techniques},
+       year =      2004,
+       pages =     {7--16},
+       month =     {september},
+       address =   {Juan-les-Pins}
+     }
+
+   Copyright (C) 2002-2005 Ce'dric Bastoul.
+
+   Permission is granted to copy, distribute and/or modify this
+document under the terms of the GNU Free Documentation License, Version
+1.2 published by the Free Software Foundation. To receive a copy of the
+GNU Free Documentation License, write to the Free Software Foundation,
+Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA.
+
+* Menu:
+
+* Introduction::
+* CLooG Software::
+* CLooG Library::
+* Installing::
+* Documentation::
+* References::
+
+
+File: cloog.info,  Node: Introduction,  Next: CLooG Software,  Prev: Top,  Up: Top
+
+1 Introduction
+**************
+
+CLooG is a free software and library generating loops for scanning
+Z-polyhedra.  That is, it finds a code (e.g. in C, FORTRAN...) that
+reaches each integral point of one or more parameterized polyhedra.
+CLooG has been originally written to solve the code generation problem
+for optimizing compilers based on the polytope model. Nevertheless it
+is used now in various area, e.g., to build control automata for
+high-level synthesis or to find the best polynomial approximation of a
+function. CLooG may help in any situation where scanning polyhedra
+matters. It uses the best state-of-the-art code generation algorithm
+known as the Quillere' et al. algorithm (*note Qui00::) with our own
+improvements and extensions (*note Bas04::).  The user has full control
+on generated code quality.  On one hand, generated code size has to be
+tuned for sake of readability or instruction cache use. On the other
+hand, we must ensure that a bad control management does not hamper
+performance of the generated code, for instance by producing redundant
+guards or complex loop bounds.  CLooG is specially designed to avoid
+control overhead and to produce a very efficient code.
+
+   CLooG stands for _Chunky Loop Generator_: it is a part of the Chunky
+project, a research tool for data locality improvement (*note Bas03a::).
+It is designed also to be the back-end of automatic parallelizers like
+LooPo (*note Gri04::).  Thus it is very compilable code oriented and
+provides powerful program transformation facilities. Mainly, it allows
+the user to specify very general schedules where, e.g., unimodularity
+or invertibility of the transformation doesn't matter.
+
+   The current version is still under evaluation, and there is no
+guarantee that the upward compatibility will be respected (but the
+previous API has been stable for two years, we hope this one will be as
+successful -and we believe it-).  A lot of reports are necessary to
+freeze the library API and the input file shape. Most API changes from
+0.12.x to 0.14.x have been requested by the users themselves.  Thus you
+are very welcome and encouraged to post reports on bugs, wishes,
+critics, comments, suggestions or successful experiences in the forum
+of `http://www.CLooG.org' or to send them to cedric.bastoul@inria.fr
+directly.
+
+* Menu:
+
+* Basics::
+* Scattering::
+
+
+File: cloog.info,  Node: Basics,  Next: Scattering,  Up: Introduction
+
+1.1 Basically, what's the point ?
+=================================
+
+If you want to use CLooG, this is because you want to scan or to find
+something inside the integral points of a set of polyhedra. There are
+many reasons for that. Maybe you need the generated code itself because
+it actually implements a very smart program transformation you found.
+Maybe you want to use the generated code because you know that the
+solution of your problem belongs to the integral points of those damned
+polyhedra and you don't know which one. Maybe you just want to know if
+a polyhedron has integral points depending on some parameters, which is
+the lexicographic minimum, maximum, the third on the basis of the left
+etc. Probably you have your own reasons to use CLooG.
+
+   Let us illustrate a basic use of CLooG. Suppose we have a set of
+affine constraints that describes a part of a whatever-dimensional
+space, called a *domain*, and we want to scan it. Let us consider for
+instance the following set of constraints where `i' and `j' are the
+unknown (the two dimensions of the space) and `m' and `n' are the
+parameters (some symbolic constants):
+     2<=i<=n
+     2<=j<=m
+     j<=n+2-i
+Let us also consider that we have a partial knowledge of the
+parameter values, called the *context*, expressed as affine constraints
+as well, for instance:
+     m>=2
+     n>=2
+Note that using parameters is optional, if you are not comfortable
+with parameter manipulation, just replace them with any scalar value
+that fits `m>=2' and `n>=2'.  A graphical representation of this part
+of the 2-dimensional space, where the integral points are represented
+using heavy dots would be for instance:
+
+ j^ i>=2
+  | | j<=n+2-i
+  | |\     | i<=n
+  | | \    |
+m-+-****---+-j<=m
+  | *****  |
+  | ****** |
+  | *******|
+2-+-********-j>=2
+  | |      |\
+0-+-+------+--->i
+  | |      |
+  0 2      n
+
+   The affine constraints of both the domain and the context are what
+we will provide to CLooG as input (in a particular shape that will be
+described later).  The output of CLooG is a pseudo-code to scan the
+integral points of the input domain according to the context:
+     for (i=2;i<=n;i++) {
+       for (j=2;j<=min(m,-i+n+2);j++) {
+         S1(i,j) ;
+       }
+     }
+If you felt such a basic example is yet interesting, there is a
+good chance that CLooG is appropriate for you. CLooG can do much more:
+scanning several polyhedra or unions of polyhedra at the same time,
+applying general affine transformations to the polyhedra, generate
+compilable code etc. Welcome to the CLooG's user's guide !
+
+
+File: cloog.info,  Node: Scattering,  Prev: Basics,  Up: Introduction
+
+1.2 Defining a Scanning Order: Scattering Functions
+===================================================
+
+In CLooG, domains only define the set of integral points to scan and
+their coordinates. In particular, CLooG is free to choose the scanning
+order for generating the most efficient code. This means, for
+optimizing/parallelizing compiler people, that CLooG doesn't make any
+speculation on dependences on and between statements (by the way, it's
+not its job !).  For instance, if an user give to CLooG only two
+domains `S1:1<=i<=n', `S2:1<=i<=n' and the context `n>=1', the
+following pseudo-codes are considered to be equivalent:
+
+     /* A convenient target pseudo-code. */
+     for (i=1;i<=N;i++) {
+      S1(i) ;
+     }
+     for (i=1;i<=N;i++) {
+      S2(i) ;
+     }
+
+     /* Another convenient target pseudo-code. */
+     for (i=1;i<=N;i++) {
+      S1(i) ;
+      S2(i) ;
+     }
+
+   The default behaviour of CLooG is to generate the second one, since
+it is optimized in control.  It is right if there are no data
+dependences between `S1' and `S2', but wrong otherwise.
+
+   Thus it is often useful to force scanning to respect a given order.
+This can be done in CLooG by using *scattering functions*. Scattering
+is a shortcut for scheduling, allocation, chunking functions and the
+like we can find in the restructuring compilation litterature. There
+are a lot of reasons to scatter the integral points of the domains
+(i.e. the statement instances of a program, for compilation people),
+parallelization or optimization are good examples. For instance, if the
+user wants for any reason to set some precedence constraints between
+the statements of our example above in order to force the generation of
+the first code, he can do it easily by setting (for example) the
+following scheduling functions:
+
+     T_S1(i) = (1)
+     T_S2(j) = (2)
+
+   This scattering means that each integral point of the domain `S1' is
+scanned at logical date `1' while each integral point of the domain
+`S2' is scanned at logical date `2'. As a result, the whole domain `S1'
+is scanned before domain `S2' and the first code in our example is
+generated.
+
+   The user can set every kind of affine scanning order thanks to the
+scattering functions. Each domain has its own scattering function and
+each scattering function may be multi-dimensional. A multi-dimentional
+logical date may be seen as classical date
+(year,month,day,hour,minute,etc.) where the first dimensions are the
+most significant. Each scattering dimension may depend linearly on the
+original dimensions (e.g., `i'), the parameters (e.g., `n') ans scalars
+(e.g., `2').
+
+   A very useful example of multi-dimensional scattering functions is,
+for compilation people, the scheduling of the original program.  The
+basic data to use for code generation are statement iteration domains.
+As we saw, these data are not sufficient to rebuild the original
+program (what is the ordering between instances of different statements
+?).  The missing data can be put in the scattering functions as the
+original scheduling. The method to compute it is quite simple (*note
+Fea92::). The idea is to build an abstract syntax tree of the program
+and to read the scheduling for each statement. For instance, let us
+consider the following implementation of a Cholesky factorization:
+
+     /* A Cholesky factorization kernel. */
+     for (i=1;i<=N;i++) {
+       for (j=1;j<=i-1;j++) {
+         a[i][i] -= a[i][j] ;           /* S1 */
+       }
+       a[i][i] = sqrt(a[i][i]) ;        /* S2 */
+       for (j=i+1;j<=N;j++) {
+         for (k=1;k<=i-1;k++) {
+           a[j][i] -= a[j][k]*a[i][k] ; /* S3 */
+         }
+         a[j][i] /= a[i][i] ;           /* S4 */
+         }
+       }
+     }
+
+   The corresponding abstract syntax tree is given in the following
+figure.  It directly gives the scattering functions (schedules) for all
+the statements of the program.
+
+       *
+       |
+       |0
+       |
+       V
+       i
+       |
+ +-----+-----+
+ |     |     |
+ |0    |1    |2
+ |     |     |
+ V     V     V
+ j     S2    j
+ |           |
+ |0       +--+--+
+ |        |     |
+ V        |0    |1
+ S1       |     |
+          V     V
+          k     S4
+          |
+          |0
+          |
+          V
+          S3
+
+     T_S1(i,j)^T   = (0,i,0,j,0)^T
+     T_S2(i)       = (0,i,1)^T
+     T_S3(i,j,k)^T = (0,i,2,j,0,k,0)^T
+     T_S4(i,j)^T   = (0,i,2,j,1)^T
+
+   These schedules depend on the iterators and give for each instance
+of each statement a unique execution date. Using such scattering
+functions allow CLooG to re-generate the input code.
+
+
+File: cloog.info,  Node: CLooG Software,  Next: CLooG Library,  Prev: Introduction,  Up: Top
+
+2 Using the CLooG Software
+**************************
+
+* Menu:
+
+* A First Example::
+* Writing The Input File::
+* Calling CLooG::
+* CLooG Options::
+* Full Example::
+
+
+File: cloog.info,  Node: A First Example,  Next: Writing The Input File,  Up: CLooG Software
+
+2.1 A First Example
+===================
+
+CLooG takes as input a file that must be written accordingly to a
+grammar described in depth in a further section (*note Writing The
+Input File::).  Moreover it supports many options to tune the target
+code presentation or quality as discussed in a dedicated section (*note
+Calling CLooG::).  However, a basic use of CLooG is not very complex
+and we present in this section how to generate the code corresponding
+to a basic example discussed earlier (*note Basics::).
+
+   The problem is to find the code that scans a 2-dimensional polyhedron
+where `i' and `j' are the unknown (the two dimensions of the space) and
+`m' and `n' are the parameters (the symbolic constants), defined by the
+following set of constraints:
+     2<=i<=n
+     2<=j<=m
+     j<=n+2-i
+We also consider a partial knowledge of the parameter values,
+expressed thanks to the following affine constraints:
+     m>=2
+     n>=2
+
+   An input file that corresponds to this problem, and asks for a
+generated code in C, may be the following. Note that we do not describe
+here precisely the structure and the components of this file (*note
+Writing The Input File::  for such information, if you feel it
+necessary):
+
+     # ---------------------- CONTEXT ----------------------
+     c # language is C
+
+     # Context (constraints on two parameters)
+     2 4                   # 2 lines and 4 columns
+     # eq/in m  n  1         eq/in: 1 for inequality >=0, 0 for equality =0
+         1   1  0 -2       # 1*m + 0*n -2*1 >= 0, i.e. m>=2
+         1   0  1 -2       # 0*m + 1*n -2*1 >= 0, i.e. n>=2
+
+     1 # We want to set manually the parameter names
+     m n                   # parameter names
+
+     # --------------------- STATEMENTS --------------------
+     1 # Number of statements
+
+     1 # First statement: one domain
+     # First domain
+     5 6                   # 5 lines and 6 columns
+     # eq/in i  j  m  n  1
+         1   1  0  0  0 -2 # i >= 2
+         1  -1  0  0  1  0 # i <= n
+         1   0  1  0  0 -2 # j >= 2
+         1   0 -1  1  0  0 # j <= m
+         1  -1 -1  0  1  2 # n+2-i>=j
+     0  0  0               # for future options
+
+     1 # We want to set manually the iterator names
+     i j                   # iterator names
+
+     # --------------------- SCATTERING --------------------
+     0 # No scattering functions
+
+   This file may be called `basic.cloog' (this example is provided in
+the CLooG distribution as `test/manual_basic.cloog') and we can ask
+CLooG to process it and to generate the code by a simple calling to
+CLooG with this file as input: `cloog basic.cloog'. By default, CLooG
+will print the generated code in the standard output:
+
+     /* Generated by CLooG v in 0.00s. */
+     for (i=2;i<=n;i++) {
+       for (j=2;j<=min(m,-i+n+2);j++) {
+         S1(i,j) ;
+       }
+     }
+
+
+File: cloog.info,  Node: Writing The Input File,  Next: Calling CLooG,  Prev: A First Example,  Up: CLooG Software
+
+2.2 Writing The Input File
+==========================
+
+The input text file contains a problem description, i.e. the context,
+the domains and the scattering functions.  Because CLooG is very
+'compilable code generation oriented', we can associate some additional
+informations to each domain. We call this association a _statement_.
+The set of all informations is called a _program_. The input file
+respects the grammar below (terminals are preceeded by "_"):
+
+     File             ::= Program
+     Program          ::= Context Statements Scattering
+     Context          ::= Language      Domain         Naming
+     Statements       ::= Nb_statements Statement_list Naming
+     Scattering       ::= Nb_functions  Domain_list    Naming
+     Naming           ::= Option Name_list
+     Name_list        ::= _String   Name_list      | (void)
+     Statement_list   ::= Statement Statement_list | (void)
+     Domain_list      ::= _Domain   Domain_list    | (void)
+     Statement        ::= Iteration_domain 0 0 0
+     Iteration_domain ::= Domain_union
+     Domain_union     ::= Nb_domains Domain_list
+     Option           ::= 0 | 1
+     Language         ::= c | f
+     Nb_statements    ::= _Integer
+     Nb_domains       ::= _Integer
+     Nb_functions     ::= _Integer
+
+   * `Context' represents the informations that are        shared by
+     all the statements. It consists on        the language used (which
+     can be `c' for C or `f' for FORTRAN 90)        and the global
+     constraints on parameters.         These constraints are essential
+           since they give to CLooG the number of parameters. If there
+     is no        parameter or no constraints on parameters, just give
+     a constraint        always satisfied like 1 \geq 0. `Naming' sets
+     the parameter        names.         If the naming option `Option'
+     is 1, parameter names will be read        on the next line. There
+     must be exactly as many names as parameters.         If the naming
+     option `Option' is 0, parameter names are        automatically
+     generated. The name of the first parameter will        be `M', and
+     the name of the (n+1)^th parameter directly        follows the
+     name of the n^th parameter in ASCII code.         It is the user
+     responsibility to ensure that parameter names,        iterators
+     and scattering dimension names are different.
+
+   * `Statements' represents the informations on the statements.
+     `Nb_statements' is the number of statements in the program,
+     i.e. the number of `Statement' items in the `Statement_list'.
+        `Statement' represents the informations on a given statement.
+           To each statement is associated a domain        (the
+     statement iteration domain: `Iteration_domain') and three
+     zeroes that represents future options.         `Naming' sets the
+     iterator names. If the naming option        `Option' is 1, the
+     iterator names        will be read on the next line. There must be
+     exactly as many names as        nesting level in the deepest
+     iteration domain. If the naming option        `Option' is 0,
+     iterator names are automatically generated.         The iterator
+     name of the outermost loop will be `i', and the        iterator
+     name of the loop at level n+1 directly follows the        iterator
+     name of the loop at level n in ASCII code.
+
+   * `Scattering' represents the informations on scattering functions.
+           `Nb_functions' is the number of functions (it must be
+     equal to the number of statements or 0 if there is no scattering
+          function). The function themselves are represented through
+         `Domain_list'.         `Naming' sets the scattering dimension
+     names. If the naming option        `Option' is 1, the scattering
+     dimension names will be read on the        next line.
+     There must be exactly as many names as scattering dimensions. If
+     the        naming option `Option' is 0, scattering dimension names
+     are automatically        generated. The name of the n^th
+     scattering dimention        will be `cn'.
+
+* Menu:
+
+* Domain Representation::
+* Scattering Representation::
+
+
+File: cloog.info,  Node: Domain Representation,  Next: Scattering Representation,  Up: Writing The Input File
+
+2.2.1 Domain Representation
+---------------------------
+
+As shown by the grammar, the input file describes the various
+informations thanks to characters, integers and domains. Each domain is
+defined by a set of constraints in the PolyLib format (*note Wil93::).
+They have the following syntax:
+  1. some optional comment lines beginning with `#',
+
+  2. the row and column numbers, possibly followed by comments,
+
+  3. the constraint rows, each row corresponds to a constraint the
+     domain have to satisfy. Each row must be on a single line and is
+     possibly       followed by comments. The constraint is an equality
+     p(x) = 0 if the       first element is 0, an inequality  p(x) \geq
+     0 if the first element       is 1. The next elements are the
+     unknown coefficients, followed by       the parameter
+     coefficients. The last element is the constant factor.
+        For instance, assuming that `i', `j' and `k' are iterators and
+`m' and `n' are parameters, the domain defined by the following
+constraints :
+
+        -i + m >= 0
+        -j + n >= 0
+     i + j - k >= 0
+
+can be written in the input file as follows :
+
+     # This is the domain
+     3 7                      # 3 lines and 7 columns
+     # eq/in i  j  k  m  n  1
+         1  -1  0  0  1  0  0 #    -i + m >= 0
+         1   0 -1  0  0  1  0 #    -j + n >= 0
+         1   1  1 -1  0  0  0 # i + j - k >= 0
+
+   Each iteration domain `Iteration_domain' of a given statement is a
+union of polyhedra `Domain_union'. A union is defined by its number of
+elements `Nb_domains' and the elements themselves `Domain_list'.  For
+instance, let us consider the following pseudo-code:
+
+     for (i=1;i<=n;i++) {
+       if ((i >= m) || (i <= 2*m))
+         S1 ;
+       for (j=i+1;j<=m;j++)
+         S2 ;
+     }
+
+The iteration domain of `S1' can be divided into two polyhedra and
+written in the input file as follows:
+
+     2 # Number of polyhedra in the union
+     # First domain
+     3 5                # 3 lines and 5 columns
+     # eq/in i  m  n  1
+         1   1  0  0 -1 #  i >= 1
+         1  -1  0  1  0 #  i <= n
+         1   1 -1  0  0 #  i >= m
+     # Second domain
+     3 5                # 3 lines and 5 columns
+     # eq/in i  m  n  1
+         1   1  0  0 -1 #  i >= 1
+         1  -1  0  1  0 #  i <= n
+         1  -1  2  0  0 #  i <= 2*m
+
+
+File: cloog.info,  Node: Scattering Representation,  Prev: Domain Representation,  Up: Writing The Input File
+
+2.2.2 Scattering Function Representation
+----------------------------------------
+
+Scattering functions are depicted in the input file thanks a
+representation very close to the domain one.  An integer gives the
+number of functions `Nb_functions' and each function is represented by
+a domain. Each line of the domain corresponds to an equality defining a
+dimension of the function. Note that at present (CLooG ) *all functions
+must have the same scattering dimension number*. If a user wants to set
+scattering functions with different dimensionality, he has to complete
+the smaller one with zeroes to reach the maximum dimensionality.  For
+instance, let us consider the following code and scheduling functions:
+
+     for (i=1;i<=n;i++) {
+       if ((i >= m) || (i <= 2*m))
+         S1 ;
+       for (j=i+1;j<=m;j++)
+         S2 ;
+     }
+
+     T_S1(i)     = (i,0)^T
+     T_S2(i,j)^T = (n,i+j)^T
+
+This scheduling can be written in the input file as follows:
+
+     2 # Number of scattering functions
+     # First function
+     2 7                          # 2 lines and 7 columns
+     # eq/in c1 c2  i  m  n  1
+         0    1  0 -1  0  0  0    #  c1 = i
+         0    0  1  0  0  0  0    #  c2 = 0
+     # Second function
+     2 8                          # 2 lines and 8 columns
+     # eq/in c1 c2  i  j  m  n  1
+         0    1  0  0  0  0 -1  0 #  c1 = n
+         0    0  1 -1 -1  0  0  0 #  c2 = i+j
+The complete input file for the user who wants to generate the
+code for this example with the preceding scheduling would be (this file
+is provided in the CLooG distribution as `test/manual_scattering.cloog':
+
+     # ---------------------- CONTEXT ----------------------
+     c # language is C
+
+     # Context (no constraints on two parameters)
+     1 4                   # 1 lines and 4 columns
+     # eq/in m  n  1
+         1   0  0  0       # 0 >= 0, always true
+
+     1 # We want to set manually the parameter names
+     m n                   # parameter names
+
+     # --------------------- STATEMENTS --------------------
+     2 # Number of statements
+
+     2 # First statement: two domains
+     # First domain
+     3 5                   # 3 lines and 5 columns
+     # eq/in i  m  n  1
+         1   1  0  0 -1    # i >= 1
+         1  -1  0  1  0    # i <= n
+         1   1 -1  0  0    # i >= m
+     # Second domain
+     3 5                   # 3 lines and 5 columns
+     # eq/in i  m  n  1
+         1   1  0  0 -1    # i >= 1
+         1  -1  0  1  0    # i <= n
+         1  -1  2  0  0    # i <= 2*m
+     0  0  0               # for future options
+
+     1 # Second statement: one domain
+     4 6                   # 4 lines and 6 columns
+     # eq/in i  j  m  n  1
+         1   1  0  0  0 -1 # i >= 1
+         1  -1  0  0  1  0 # i <= n
+         1  -1  1  0  0 -1 # j >= i+1
+         1   0 -1  1  0  0 # j <= m
+     0  0  0               # for future options
+
+     1 # We want to set manually the iterator names
+     i j                   # iterator names
+
+     # --------------------- SCATTERING --------------------
+     2 # Scattering functions
+     # First function
+     2 7                   # 2 lines and 7 columns
+     # eq/in p1 p2  i  m  n  1
+         0    1  0 -1  0  0  0    # p1 = i
+         0    0  1  0  0  0  0    # p2 = 0
+     # Second function
+     2 8                   # 2 lines and 8 columns
+     # eq/in p1 p2  i  j  m  n  1
+         0    1  0  0  0  0 -1  0 # p1 = n
+         0    0  1 -1 -1  0  0  0 # p2 = i+j
+
+     1 # We want to set manually the scattering dimension names
+     p1 p2                 # scattering dimension names
+
+
+File: cloog.info,  Node: Calling CLooG,  Next: CLooG Options,  Prev: Writing The Input File,  Up: CLooG Software
+
+2.3 Calling CLooG
+=================
+
+CLooG is called by the following command:
+            cloog [ options | file ]
+   The default behavior of CLooG is to read the input informations from
+a file and to print the generated code or pseudo-code on the standard
+output.  CLooG's behavior and the output code shape is under the user
+control thanks to many options which are detailed a further section
+(*note CLooG Options::).  `file' is the input file. `stdin' is a
+special value: when used, input is standard input. For instance, we can
+call CLooG to treat the input file `basic.cloog' with default options
+by typing: `cloog basic.cloog' or `more basic.cloog | cloog stdin'.
+
+
+File: cloog.info,  Node: CLooG Options,  Next: Full Example,  Prev: Calling CLooG,  Up: CLooG Software
+
+2.4 CLooG Options
+=================
+
+* Menu:
+
+* Last Depth to Optimize Control::
+* First Depth to Optimize Control::
+* Simplify Convex Hull::
+* Once Time Loop Elimination::
+* Equality Spreading::
+* Constant Spreading::
+* First Level for Spreading::
+* C PreProcessor Friendly::
+* Statement Block::
+* Loop Strides::
+* Compilable Code::
+* Output::
+* Help::
+* Version ::
+
+
+File: cloog.info,  Node: Last Depth to Optimize Control,  Next: First Depth to Optimize Control,  Up: CLooG Options
+
+2.4.1 Last Depth to Optimize Control `-l <depth>'
+-------------------------------------------------
+
+`-l <depth>': this option sets the last loop depth to be optimized in
+control. The higher this depth, the less control overhead.  For
+instance, with some input file, a user can generate different
+pseudo-codes with different `depth' values as shown below.
+     /* Generated using a given input file and *option -l 1* */
+     for (i=0;i<=M;i++) {
+       S1 ;
+       for (j=0;j<=N;j++) {
+         S2 ;
+       }
+       for (j=0;j<=N;j++) {
+         S3 ;
+       }
+       S4 ;
+     }
+
+     /* Generated using the same input file but *option -l 2* */
+     for (i=0;i<=M;i++) {
+       S1 ;
+       for (j=0;j<=N;j++) {
+         S2 ;
+         S3 ;
+       }
+       S4 ;
+     }
+     In this example we can see that this option can change the
+operation      execution order between statements. Let us remind that
+CLooG does not      make any speculation on dependences between
+statements      (*note Scattering::). Thus if nothing (i.e. scattering
+functions)      forbids this, CLooG considers the above codes to be
+equivalent.       If there is no scattering functions, the minimum
+value for `depth'      is 1 (in the case of 0, the user doesn't really
+need a loop generator !),      and the number of scattering dimensions
+otherwise (CLooG will warn the      user if he doesn't respect such
+constraint).       The maximum value for depth is -1 (infinity).
+Default value is infinity.
+
+
+File: cloog.info,  Node: First Depth to Optimize Control,  Next: Simplify Convex Hull,  Prev: Last Depth to Optimize Control,  Up: CLooG Options
+
+2.4.2 First Depth to Optimize Control `-f <depth>'
+--------------------------------------------------
+
+`-f <depth>': this option sets the first loop depth to be optimized
+in control. The lower this depth, the less control overhead (and the
+longer      the generated code). For instance, with some input file, a
+user      can generate different pseudo-codes with different `depth'
+values      as shown below.       The minimum value for `depth' is 1,
+and the      maximum value is -1 (infinity).       Default value is 1.
+     /* Generated using a given input file and *option -f 3* */
+     for (i=1;i<=N;i++) {
+       for (j=1;j<=M;j++) {
+         S1 ;
+         if (j >= 10) {
+           S2 ;
+         }
+       }
+     }
+
+     /* Generated using the same input file but *option -f 2* */
+     for (i=1;i<=N;i++) {
+       for (j=1;j<=9;j++) {
+         S1 ;
+       }
+       for (j=10;j<=M;j++) {
+         S1 ;
+         S2 ;
+       }
+     }
+
+
+File: cloog.info,  Node: Simplify Convex Hull,  Next: Once Time Loop Elimination,  Prev: First Depth to Optimize Control,  Up: CLooG Options
+
+2.4.3 Simplify Convex Hull `-sh <boolean>'
+------------------------------------------
+
+`-sh <boolean>': this option enables (`boolean=1')      or forbids
+(`boolean=0') a simplification step      that may simplify some
+constraints.       This option works only for generated code without
+ code duplication (it means, you have to tune `-f' and      `-l'
+options first to generate only a loop nest with internal      guards).
+For instance, with the input file `test/union.cloog', a user      can
+generate different pseudo-codes  as shown below.       Default value is
+0.
+     /* Generated using test/union.cloog and *option -f -1 -l 2 -override* */
+     for (i=0;i<=11;i++) {
+       for (j=max(0,5*i-50);j<=min(15,5*i+10);j++) {
+         if ((i <= 10) && (j <= 10)) {
+           S1 ;
+         }
+         if ((i >= 1) && (j >= 5)) {
+           S2 ;
+         }
+       }
+     }
+
+     /* Generated using the same input file but *option -sh 1 -f -1 -l 2 -override* */
+     for (i=0;i<=11;i++) {
+       for (j=0;j<=15;j++) {
+         if ((i <= 10) && (j <= 10)) {
+           S1 ;
+         }
+         if ((i >= 1) && (j >= 5)) {
+           S2 ;
+         }
+       }
+     }
+
+
+File: cloog.info,  Node: Once Time Loop Elimination,  Next: Equality Spreading,  Prev: Simplify Convex Hull,  Up: CLooG Options
+
+2.4.4 Once Time Loop Elimination `-otl <boolean>'
+-------------------------------------------------
+
+`-otl <boolean>': this option allows (`boolean=1') or      forbids
+(`boolean=0') the simplification of loops running      once. Default
+value is 1.
+     /* Generated using a given input file and *option -otl 0* */
+     for (j=i+1;j<=i+1;j++) {
+       S1 ;
+     }
+
+     /* Generated using the same input file but *option -otl 1* */
+     j = i+1 ;
+     S1 ;
+
+
+File: cloog.info,  Node: Equality Spreading,  Next: Constant Spreading,  Prev: Once Time Loop Elimination,  Up: CLooG Options
+
+2.4.5 Equality Spreading `-esp <boolean>'
+-----------------------------------------
+
+`-esp <boolean>': this option allows (`boolean=1') or      forbids
+(`boolean=0') values spreading when there      are equalities. Default
+value is 0.
+     /* Generated using a given input file and *option -esp 0* */
+     i = M+2 ;
+     j = N ;
+     for (k=i;k<=j+M;k++) {
+       S1 ;
+     }
+
+     /* Generated using the same input file but *option -esp 1* */
+     for (k=M+2;k<=N+M;k++) {
+       S1(i = M+2, j = N) ;
+     }
+
+
+File: cloog.info,  Node: Constant Spreading,  Next: First Level for Spreading,  Prev: Equality Spreading,  Up: CLooG Options
+
+2.4.6 Constant Spreading `-csp <boolean>'
+-----------------------------------------
+
+`-csp <boolean>': this option allows (`boolean=1') or      forbids
+(`boolean=0') values spreading when      there are _constant_
+equalities. That is, when the right member      of the equality is a
+constant term. Default value is 1.
+     /* Generated using a given input file and *option -csp 0* */
+     i = M+2 ;
+     j = N ;
+     for (k=i;j<=j+M;j++) {
+       S1 ;
+     }
+
+     /* Generated using the same input file but *option -csp 1* */
+     i = M+2 ;
+     for (k=i;k<=N+M;k++) {
+       S1(j = N) ;
+     }
+
+
+File: cloog.info,  Node: First Level for Spreading,  Next: C PreProcessor Friendly,  Prev: Constant Spreading,  Up: CLooG Options
+
+2.4.7 First Level for Spreading `-fsp <level>'
+----------------------------------------------
+
+`-fsp <level>': it can be useful to set a      first level to begin
+equality spreading. Particularly when using      scattering functions,
+the user may want to see the scattering dimension      values instead
+of spreading or hiding them. If user has set a      spreading, `level'
+is      the first level to start it. Default value is 1.
+     /* Generated using a given input file and *option -fsp 1* */
+     for (j=0;j<=N+M;j++) {
+       S1(i = N) ;
+     }
+     for (j=0;j<=N+M;j++) {
+       S1(i = M) ;
+     }
+
+     /* Generated using the same input file but *option -fsp 2* */
+     c1 = N ;
+     for (j=0;j<=c1+M;j++) {
+       S1(i = c1) ;
+     }
+     c1 = M ;
+     for (j=0;j<=N+c1;j++) {
+       S1(i = c1) ;
+     }
+
+
+File: cloog.info,  Node: C PreProcessor Friendly,  Next: Statement Block,  Prev: First Level for Spreading,  Up: CLooG Options
+
+2.4.8 C PreProcessor Friendly `-cpp <boolean>'
+----------------------------------------------
+
+`-cpp <boolean>': this option ask CLooG for printing a less
+human-readable but compilable code by using the C preprocessor
+(`boolean=1'). In this case each statement is written as a
+function of the iterators corresponding to its domain dimensions:
+`Si(value_of_iterator_1,...,value_of_iterator_n)'. It follows      that
+the user can easily add preprocessor macros to define each
+statement and use the generated textual code directly for compilation.
+    When `boolean' is set to 0, the pretty printer has the default
+behaviour. Default value is 0.
+     /* Generated using a given input file and *option -cpp 0* */
+     for (j=0;j<=N+M;j++) {
+       S1(i = N) ;
+     }
+
+     /* Generated using the same input file but *option -cpp 1* */
+     /* and a preprocessor macro set by the user */
+
+     #define S1(i,j) A[(j)]=3*(i)
+
+     for (j=0;j<=N+M;j++) {
+       S1(N,j) ;
+     }
+
+
+File: cloog.info,  Node: Statement Block,  Next: Loop Strides,  Prev: C PreProcessor Friendly,  Up: CLooG Options
+
+2.4.9 Statement Block `-block <boolean>'
+----------------------------------------
+
+`-block <boolean>': this option allows (`boolean=1') to      create a
+statement block for each new iterator, even if there is only      an
+equality. This can be useful in order to parse the generated
+pseudo-code. When `boolean' is set to 0 or when the generation
+language is FORTRAN, this feature is disabled. Default value is 0.
+     /* Generated using a given input file and *option -block 0* */
+     i = M+2 ;
+     j = N ;
+     S1 ;
+
+     /* Generated using the same input file but *option -block 1* */
+     { i = M+2 ;
+       { j = N ;
+         S1 ;
+       }
+     }
+
+
+File: cloog.info,  Node: Loop Strides,  Next: Compilable Code,  Prev: Statement Block,  Up: CLooG Options
+
+2.4.10 Loop Strides `-strides <boolean>'
+----------------------------------------
+
+`-strides <boolean>': this options allows (`boolean=1') to      handle
+non-unit strides for loop increments. This can remove a lot of
+guards and make the generated code more efficient. Default value is 0.
+     /* Generated using a given input file and *option -strides 0* */
+     for (i=1;i<=n;i++) {
+       if (i%2 == 0) {
+         S1(j = i/2) ;
+       }
+       if (i%4 == 0) {
+         S2(j = i/4) ;
+       }
+     }
+
+     /* Generated using the same input file but *option -strides 1* */
+     for (i=2;i<=n;i+=2) {
+       S1(j = i/2) ;
+       if (i%4 == 0) {
+         S2(j = i/4) ;
+       }
+     }
+
+
+File: cloog.info,  Node: Compilable Code,  Next: Output,  Prev: Loop Strides,  Up: CLooG Options
+
+2.4.11 Compilable Code `-compilable <value>'
+--------------------------------------------
+
+`-compilable <value>': this options allows (`value' is not 0)      to
+generate a compilable code where all parameters have the integral value
+    `value'. This option creates a macro for each statement. Since
+CLooG do not know anything about the statement sources, it fills the
+  macros with a basic increment that computes the total number of
+scanned integral points. The user may change easily the macros according
+    to his own needs. This option is possible only if the generated
+code is      in C. Default value is 0.
+     /* Generated using a given input file and *option -compilable 0* */
+     for (i=0;i<=n;i++) {
+       for (j=0;j<=n;j++) {
+         S1 ;
+         S2 ;
+       }
+       S3 ;
+     }
+
+     /* Generated using the same input file but *option -compilable 10* */
+     /* DON'T FORGET TO USE -lm OPTION TO COMPILE. */
+
+     /* Useful headers. */
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <math.h>
+
+     /* Parameter value. */
+     #define PARVAL 10
+
+     /* Statement macros (please set). */
+     #define S1(i,j) {total++;}
+     #define S2(i,j) {total++;}
+     #define S3(i)   {total++;}
+
+     int main() {
+       /* Original iterators. */
+       int i, j ;
+       /* Parameters. */
+       int n=PARVAL, total=0 ;
+
+       for (i=0;i<=n;i++) {
+         for (j=0;j<=n;j++) {
+           S1(i,j) ;
+           S2(i,j) ;
+         }
+         S3(i) ;
+       }
+
+       printf("Number of integral points: %d.\n",total) ;
+       return 0 ;
+     }
+
+
+File: cloog.info,  Node: Output,  Next: Help,  Prev: Compilable Code,  Up: CLooG Options
+
+2.4.12 Output `-o <output>'
+---------------------------
+
+`-o <output>': this option sets the output file. `stdout' is a
+special value: when used, output is standard output.       Default
+value is `stdout'.
+
+
+File: cloog.info,  Node: Help,  Next: Version,  Prev: Output,  Up: CLooG Options
+
+2.4.13 Help `--help' or `-h'
+----------------------------
+
+`--help' or `-h': this option ask CLooG to print a short help.
+
+
+File: cloog.info,  Node: Version,  Prev: Help,  Up: CLooG Options
+
+2.4.14 Version `--version' or `-v'
+----------------------------------
+
+`--version' or `-v': this option ask CLooG to print some version
+informations.
+
+
+File: cloog.info,  Node: Full Example,  Prev: CLooG Options,  Up: CLooG Software
+
+2.5 A Full Example
+==================
+
+Let us consider the allocation problem of a Gaussian elimination, i.e.
+we want to distribute the various statement instances of the compute
+kernel onto different processors. The original code is the following:
+     for (i=1;j<=N-1;i++) {
+       for (j=i+1;j<=N;j++) {
+         c[i][j] = a[j][i]/a[i][i] ;    /* S1 */
+         for (k=i+1;k<=N;k++) {
+           a[j][k] -= c[i][j]*a[i][k] ; /* S2 */
+         }
+       }
+     }
+
+The best affine allocation functions can be found by any good automatic
+parallelizer like LooPo (*note Gri04::):
+
+     T_S1(i,j)^T   = (i)
+     T_S2(i,j,k)^T = (k)
+
+To ensure that on each processor, the set of statement instances is
+executed according to the original ordering, we add as minor scattering
+dimensions the original scheduling (*note Scattering::):
+
+     T_S1(i,j)^T   = (i,0,i,0,j,0)^T
+     T_S2(i,j,k)^T = (k,0,i,0,j,1,k,0)^T
+
+To ensure that the scattering functions have the same dimensionality, we
+complete the first function with zeroes (this is a CLooG  and previous
+versions requirement, it should be removed in a future version, don't
+worry it's absolutly legal !):
+
+     T_S1(i,j)^T   = (i,0,i,0,j,0,0,0)^T
+     T_S2(i,j,k)^T = (k,0,i,0,j,1,k,0)^T
+
+The input file corresponding to this code generation problem could be
+(this file is provided in the CLooG distribution as
+`test/manual_gauss.cloog':
+
+     # ---------------------- CONTEXT ----------------------
+     c # language is C
+
+     # Context (no constraints on one parameter)
+     1 3                     # 1 line and 3 columns
+     # eq/in n  1
+         1   0  0            # 0 >= 0, always true
+
+     1 # We want to set manually the parameter name
+     n                       # parameter name
+
+     # --------------------- STATEMENTS --------------------
+     2 # Number of statements
+
+     1 # First statement: one domain
+     4 5                     # 4 lines and 3 columns
+     # eq/in i  j  n  1
+         1   1  0  0 -1      # i >= 1
+         1  -1  0  1 -1      # i <= n-1
+         1  -1  1  0 -1      # j >= i+1
+         1   0 -1  1  0      # j <= n
+     0  0  0                 # for future options
+
+     1
+     # Second statement: one domain
+     6 6                     # 6 lines and 3 columns
+     # eq/in i  j  k  n  1
+         1   1  0  0  0 -1   # i >= 1
+         1  -1  0  0  1 -1   # i <= n-1
+         1  -1  1  0  0 -1   # j >= i+1
+         1   0 -1  0  1  0   # j <= n
+         1  -1  0  1  0 -1   # k >= i+1
+         1   0  0 -1  1  0   # k <= n
+     0  0  0                 # for future options
+
+     0 # We let CLooG set the iterator names
+
+     # --------------------- SCATTERING --------------------
+     2 # Scattering functions
+     # First function
+     8 13                    # 3 lines and 3 columns
+     # eq/in p1 p2 p3 p4 p5 p6 p7 p8  i  j  n  1
+         0    1  0  0  0  0  0  0  0 -1  0  0  0     # p1 = i
+         0    0  1  0  0  0  0  0  0  0  0  0  0     # p2 = 0
+         0    0  0  1  0  0  0  0  0 -1  0  0  0     # p3 = i
+         0    0  0  0  1  0  0  0  0  0  0  0  0     # p4 = 0
+         0    0  0  0  0  1  0  0  0  0 -1  0  0     # p5 = j
+         0    0  0  0  0  0  1  0  0  0  0  0  0     # p6 = 0
+         0    0  0  0  0  0  0  1  0  0  0  0  0     # p7 = 0
+         0    0  0  0  0  0  0  0  1  0  0  0  0     # p8 = 0
+     # Second function
+     8 14                    # 3 lines and 3 columns
+     # eq/in p1 p2 p3 p4 p5 p6 p7 p8  i  j  k  n  1
+         0    1  0  0  0  0  0  0  0  0  0 -1  0  0  # p1 = k
+         0    0  1  0  0  0  0  0  0  0  0  0  0  0  # p2 = 0
+         0    0  0  1  0  0  0  0  0 -1  0  0  0  0  # p3 = i
+         0    0  0  0  1  0  0  0  0  0  0  0  0  0  # p4 = 0
+         0    0  0  0  0  1  0  0  0  0 -1  0  0  0  # p5 = j
+         0    0  0  0  0  0  1  0  0  0  0  0  0 -1  # p6 = 1
+         0    0  0  0  0  0  0  1  0  0  0 -1  0  0  # p7 = k
+         0    0  0  0  0  0  0  0  1  0  0  0  0  0  # p8 = 0
+
+     1 # We want to set manually the scattering dimension names
+     p1 p2 p3 p4 p5 p6 p7 p8 # scattering dimension names
+
+   Calling CLooG, with for instance the command line `cloog -fsp 2
+gauss.cloog' for a better view of the allocation (the processor number
+is given by `p1'), will result on the following target code that
+actually implements the transformation. A minor processing on the
+dimension `p1' to implement, e.g., MPI calls, which is not shown here
+may result in dramatic speedups !
+
+     if (n >= 2) {
+       p1 = 1 ;
+       for (p5=2;p5<=n;p5++) {
+         S1(i = 1,j = p5) ;
+       }
+     }
+     for (p1=2;p1<=n-1;p1++) {
+       for (p3=1;p3<=p1-1;p3++) {
+         for (p5=p3+1;p5<=n;p5++) {
+           S2(i = p3,j = p5,k = p1) ;
+         }
+       }
+       for (p5=p1+1;p5<=n;p5++) {
+         S1(i = p1,j = p5) ;
+       }
+     }
+     if (n >= 2) {
+       p1 = n ;
+       for (p3=1;p3<=n-1;p3++) {
+         for (p5=p3+1;p5<=n;p5++) {
+           S2(i = p3,j = p5,k = n) ;
+         }
+       }
+     }
+
+
+File: cloog.info,  Node: CLooG Library,  Next: Installing,  Prev: CLooG Software,  Up: Top
+
+3 Using the CLooG Library
+*************************
+
+The CLooG Library was implemented to allow the user to call CLooG
+directly from his programs, without file accesses or system calls. The
+user only needs to link his programs with C libraries. The CLooG
+library mainly provides one function (`cloog_program_generate') which
+takes as input the problem description with some options, and returns
+the data structure corresponding to the generated code (a
+`CloogProgram' structure) which is more or less an abstract syntax tree.
+The user can work with this data structure and/or use our pretty
+printing function to write the final code in either C or FORTRAN.  Some
+other functions are provided for convenience reasons.  These functions
+as well as the data structures are described in this section.
+
+* Menu:
+
+* CLooG Data Structures::
+* CLooG Functions::
+* Example of Library Utilization::
+
+
+File: cloog.info,  Node: CLooG Data Structures,  Next: CLooG Functions,  Up: CLooG Library
+
+3.1 CLooG Data Structures Description
+=====================================
+
+In this section, we describe the data structures used by the loop
+generator to represent and to process a code generation problem.
+
+* Menu:
+
+* CloogMatrix::
+* CloogDomain::
+* CloogDomainList::
+* CloogStatement::
+* CloogBlock::
+* CloogBlockList::
+* CloogLoop::
+* CloogNames::
+* CloogProgram::
+* CloogOptions::
+
+
+File: cloog.info,  Node: CloogMatrix,  Next: CloogDomain,  Up: CLooG Data Structures
+
+3.1.1 CloogMatrix
+-----------------
+
+     #define CloogMatrix Matrix
+
+The `CloogMatrix' structure is directly the PolyLib `Matrix' data
+structure (*note Wil93::). This structure is devoted to represent a set
+of constraints. It is defined in `polylib/types.h' as the following:
+
+     struct matrix
+     { unsigned NbRows ;    /* Number of rows. */
+       unsigned NbColumns ; /* Number of columns. */
+       Value ** p ;         /* Array of pointers to the matrix rows. */
+       Value * p_Init ;     /* Matrix rows contiguously in memory. */
+       int p_Init_size ;    /* For internal use. */
+     }
+     typedef struct matrix Matrix;
+
+The whole matrix is stored in memory row after row at the `p_Init'
+address. `p' is an array of pointers where `p[i]' points to the first
+element of the i^th row.  `NbRows' and `NbColumns' are respectively the
+number of rows and columns of the matrix.  Each row corresponds to a
+constraint. The first element of each row is an equality/inequality
+tag. The constraint is an equality p(x) = 0 if the first element is 0,
+but it is an inequality p(x) \geq 0 if the first element is 1.  The
+next elements are the unknown coefficients, followed by the parameter
+coefficients, then the scalar coefficient.  For instance, the following
+three constraints:
+
+         -i + m  = 0
+         -j + n >= 0
+      i + j - k >= 0
+
+would be represented by the following rows:
+
+     # eq/in  i   j   k   m   n   cst
+         0    0  -1   0   1   0    0
+         1   -1   0   0   0   1    0
+         1    1   1  -1   0   0    0
+
+To be able to provide different precision version (CLooG supports 32
+bits, 64 bits and arbitrary precision through the GMP library), the
+`Value' type depends on the configuration options (it may be `long int'
+for 32 bits version, `long long int' for 64 bits version, and `mpz_t'
+for multiple precision version).  The `p_Init_size' field is needed by
+the PolyLib to free the memory allocated by `mpz_init' in the multiple
+precision release.  Set this field to 0 if you are _not_ using multiple
+precision.  Set this field to the size of the `p_Init' array if you
+initialized it yourself and if you are using the multiple precision
+version.
+
+
+File: cloog.info,  Node: CloogDomain,  Next: CloogDomainList,  Prev: CloogMatrix,  Up: CLooG Data Structures
+
+3.1.2 CloogDomain
+-----------------
+
+     struct cloogdomain
+     { Polyhedron * polyhedron ;  /* The polyhedral domain. */
+     } ;
+     typedef struct cloogdomain CloogDomain ;
+
+The `CloogDomain' structure contains a PolyLib `Polyhedron' data
+structure which represents a polyhedral domain (a union of polyhedra)
+in both constraint representation and its dual ray representation
+(*note Wil93::).  It is defined in `polylib/types.h' as the following:
+
+     struct polyhedron
+     { unsigned Dimension,        /* Number of dimensions. */
+                NbConstraints,    /* Number of constraints. */
+                NbRays,           /* Number of rays. */
+                NbEq,             /* Number of vertices (?). */
+                NbBid ;           /* Number of extremal rays (?). */
+       Value ** Constraint ;      /* Pointers to constraints. */
+       Value ** Ray ;             /* Pointers to rays. */
+       Value * p_Init ;           /* Constraints and rays contiguously. */
+       int p_Init_size ;          /* For internal use. */
+       struct polyhedron * next ; /* Next component of the union. */
+     }
+     typedef struct polyhedron Polyhedron;
+
+The constraint representation is quite the same as in the `Matrix' data
+structure (*note CloogMatrix::). The number of rows is `NbConstraints'
+and the number of columns in the `Polyhedron' structure is
+`Dimension+2' (the +2 comes from the equality/inequality tag and the
+scalar coefficient). As in the `Matrix' structure, The data are stored
+in memory contiguously at the `p_Init' address and the `p_Init_size'
+field is used for memory deallocation in the multiple precision case
+(*note CloogMatrix::).  For a better understanding of the dual ray
+representation, the user may refer to the PolyLib documentation.
+
+
+File: cloog.info,  Node: CloogDomainList,  Next: CloogStatement,  Prev: CloogDomain,  Up: CLooG Data Structures
+
+3.1.3 CloogDomainList
+---------------------
+
+     struct cloogdomainlist
+     { CloogDomain * domain ;
+       struct cloogdomainlist * next ;
+     } ;
+     typedef struct cloogdomainlist CloogDomainList ;
+
+The CloogDomainList structure represents a `NULL' terminated linked list
+of domains.
+
+
+File: cloog.info,  Node: CloogStatement,  Next: CloogBlock,  Prev: CloogDomainList,  Up: CLooG Data Structures
+
+3.1.4 CloogStatement
+--------------------
+
+     struct cloogstatement
+     { int number ;                  /* The statement unique number. */
+       void * usr ;                  /* Pointer for user's convenience. */
+       struct cloogstatement * next ;/* Next element of the linked list. */
+     } ;
+     typedef struct cloogstatement CloogStatement ;
+
+The `CloogStatement' structure represents a `NULL' terminated linked
+list of statements. In CLooG, a statement is only defined by its unique
+number (`number'). The user can use the pointer `usr' for his own
+convenience to link his own statement representation to the
+corresponding `CloogStatement' structure. The whole management of the
+`usr' pointer is under the responsibility of the user, in particular,
+CLooG never tries to print, to allocate or to free a memory block
+pointed by `usr'.
+
+
+File: cloog.info,  Node: CloogBlock,  Next: CloogBlockList,  Prev: CloogStatement,  Up: CLooG Data Structures
+
+3.1.5 CloogBlock
+----------------
+
+     struct cloogblock
+     { CloogStatement * statement ; /* Statement list of the block. */
+       CloogMatrix * scattering ;   /* Scattering function of the block. */
+       int depth ;                  /* Original block depth.*/
+       void * usr;                  /* Pointer for user's convenience. */
+     } ;
+     typedef struct cloogblock CloogBlock ;
+
+The `CloogBlock' structure represents a statement block.  In a
+statement block, every statements have the same iteration domain and
+the same scattering function (actually, the scattering functions may
+differ only by a scalar coefficient if it just precises the ordering of
+the statements within the block). `statement' is the statement list
+where the statement order matters, `scattering' is one of the statement
+scattering functions and `depth' is the number of dimensions of the
+iteration domain (only the unknown, not the tag/parameters/scalar).
+`usr' is a pointer for library user's convenience. Note this pointer is
+never allocated, freed or printed by CLooG.
+
+
+File: cloog.info,  Node: CloogBlockList,  Next: CloogLoop,  Prev: CloogBlock,  Up: CLooG Data Structures
+
+3.1.6 CloogBlockList
+--------------------
+
+     struct cloogdblocklist
+     { CloogBlock * block ;
+       struct cloogblocklist * next ;
+     } ;
+     typedef struct cloogblocklist CloogBlockList ;
+
+The CloogBlockList structure represents a `NULL' terminated linked list
+of blocks.
+
+
+File: cloog.info,  Node: CloogLoop,  Next: CloogNames,  Prev: CloogBlockList,  Up: CLooG Data Structures
+
+3.1.7 CloogLoop
+---------------
+
+     struct cloogloop
+     { CloogDomain * domain;       /* Iteration domain. */
+       Value stride ;               /* Loop stride. */
+       CloogBlock * block ;         /* Included statement block.*/
+       void * usr;                  /* Pointer for user's convenience. */
+       struct cloogloop * inner ;   /* Loop at the next level. */
+       struct cloogloop * next ;    /* Next loop at the same level. */
+     } ;
+     typedef struct cloogloop CloogLoop ;
+
+The `CloogLoop' structure represents a loop.  First of all, a loop has
+an iteration domain (`domain'). The iterator's stride for loop
+increment is `stride'. The loop can include a statement block in the
+field `block'. If there is no included statement block, `block' is set
+to `NULL'. `usr' is a pointer for library user's convenience. Note that
+this pointer is never allocated, freed or printed by CLooG. `inner' is
+a pointer to the inner loop, and `next' a pointer to the next loop in
+the textual order. If there are no inner loop or no next loop, the
+corresponding pointer is set to `NULL'.
+
+
+File: cloog.info,  Node: CloogNames,  Next: CloogProgram,  Prev: CloogLoop,  Up: CLooG Data Structures
+
+3.1.8 CloogNames
+----------------
+
+     struct cloognames
+     { int nb_scattering ;         /* Scattering dimension number. */
+       int nb_iterators ;          /* Iterator number. */
+       int nb_parameters ;         /* Parameter number. */
+       char ** scattering ;        /* The scattering dimension names. */
+       char ** iterators ;         /* The iterator names. */
+       char ** parameters ;        /* The parameter names. */
+     } ;
+     typedef struct cloognames CloogNames ;
+
+The `CloogNames' structure represents the scattering dimension, the
+iterator and the parameter names in the final program.  `nb_scattering'
+(respectively `nb_iterators' and `nb_parameters') is the number of
+scattering dimensions number (respectively the iterator and parameter
+number) and of elements in the corresponding array of strings
+`scattering' (respectively `iterators' and `parameters').  The i^th
+scattering dimension name will be associated with the to the dimension
+i of the scattering function.  The i^th iterator name will be
+associated with the dimension i of the iteration domain.  The i^th
+parameter name will be associated with the dimension i of the context
+polyhedron.  The user has to ensure that there are enough scattering
+dimension, iterator and parameter names.
+
+
+File: cloog.info,  Node: CloogProgram,  Next: CloogOptions,  Prev: CloogNames,  Up: CLooG Data Structures
+
+3.1.9 CloogProgram
+------------------
+
+     struct cloogprogram
+     { char language ;              /* The language of the program. */
+       int  nb_scattdims ;          /* Scattering dimension number. */
+       CloogNames  * names ;        /* Iterators and parameters names. */
+       CloogDomain * context ;      /* The context of the program. */
+       CloogLoop   * loop ;         /* The loops of the program. */
+       CloogBlockList * blocklist ; /* The statement block list. */
+       void * usr;                  /* For library user's convenience. */
+     } ;
+     typedef struct cloogprogram CloogProgram ;
+
+The `CloogProgram' structure represents a static control program kernel.
+`language' precises the language (`c' for C or `f' for FORTRAN).
+`nb_scattdims' gives the number of scattering dimensions.  `context' is
+a pointer to the constraints on the program parameters, it can't be the
+`NULL' pointer even if there are no constraints on parameters. In such a
+case, set a polyhedron with as many dimensions as there are parameters,
+with an _always true_ constraint like 1 \geq 0 (this is necessary since
+the number of parameters is deduced from the dimension number of the
+context constraints). `loop' is a pointer to the first loop of the
+program. `names' is a pointer to the various element names (scattering
+dimension, iterators, parameters) of the final program. `names' can be
+the `NULL' pointer if the user do not want to use our pretty printing
+function.  `blocklist' is the linked list of all the statement block
+structures.  `usr' is a pointer for library user's convenience. Note
+that this pointer is never allocated, freed or printed by CLooG.  As an
+example, let us consider the following loop nest:
+     for (i=0; i<=n; i++) {
+       for (j=0; j<=n; j++) {
+         S1 ;
+         S2 ;
+       }
+       for (j=n+1; j<=2*n; j++) {
+         S3 ;
+       }
+     }
+The next figure gives a possible representation in memory for this
+program thanks to the CLooG data structures (it has been actually
+printed by the `cloog_program_print' function). In this figure, `+--
+CloogLoop' denotes an `inner' loop, while a `CloogLoop' on the same
+column pointed by an arrow denotes a `next' loop:
+
+     +-- CloogProgram
+     |       |
+     |       Language: c
+     |       |
+     |       Scattering dimension number: 0
+     |       |
+     |       +-- CloogNames
+     |       |       |
+     |       |       Scattering dimension number: 0
+     |       |       |
+     |       |       +-- No scattering string
+     |       |       |
+     |       |       Iterator number -----------: 2
+     |       |       |
+     |       |       +-- Iterator strings ------: i j
+     |       |       |
+     |       |       Parameter number ----------: 1
+     |       |       |
+     |       |       +-- Parameter strings -----: n
+     |       |
+     |       +-- Context
+     |       |       [   1    1   -2  ]
+     |       |       [   1    0    1  ]
+     |       |
+     |       +-- CloogLoop
+     |       |       |
+     |       |       +-- CloogDomain
+     |       |       |       [   1   -1    1    0  ]
+     |       |       |       [   1    1    0    0  ]
+     |       |       |       [   1    0    0    1  ]
+     |       |       |
+     |       |       Stride: 1
+     |       |       |
+     |       |       +-- Null CloogBlock
+     |       |       |
+     |       |       +-- CloogLoop
+     |       |       |       |
+     |       |       |       +-- CloogDomain
+     |       |       |       |       [   1    0    1    0    0  ]
+     |       |       |       |       [   1    0   -1    1    0  ]
+     |       |       |       |       [   1    0    0    0    1  ]
+     |       |       |       |
+     |       |       |       Stride: 1
+     |       |       |       |
+     |       |       |       +-- Null CloogBlock
+     |       |       |       |
+     |       |       |       +-- CloogLoop
+     |       |       |       |       |
+     |       |       |       |       +-- CloogDomain
+     |       |       |       |       |       [   1    0    0    0    1  ]
+     |       |       |       |       |
+     |       |       |       |       Stride: 1
+     |       |       |       |       |
+     |       |       |       |       +-- CloogBlock
+     |       |       |       |       |       |
+     |       |       |       |       |       +-- CloogStatement 1
+     |       |       |       |       |       |          |
+     |       |       |       |       |       |          V
+     |       |       |       |       |       |   CloogStatement 2
+     |       |       |       |       |       |
+     |       |       |       |       |       +-- Null scattering function
+     |       |       |       |       |       |
+     |       |       |       |       |       Depth: 2
+     |       |       |       |       |
+     |       |       |       |
+     |       |       |       V
+     |       |       |   CloogLoop
+     |       |       |       |
+     |       |       |       +-- CloogDomain
+     |       |       |       |       [   1    0   -1    2    0  ]
+     |       |       |       |       [   1    0    1   -1   -1  ]
+     |       |       |       |       [   1    0    0    0    1  ]
+     |       |       |       |
+     |       |       |       Stride: 1
+     |       |       |       |
+     |       |       |       +-- Null CloogBlock
+     |       |       |       |
+     |       |       |       +-- CloogLoop
+     |       |       |       |       |
+     |       |       |       |       +-- CloogDomain
+     |       |       |       |       |       [   1    0    0    0    1  ]
+     |       |       |       |       |
+     |       |       |       |       Stride: 1
+     |       |       |       |       |
+     |       |       |       |       +-- CloogBlock
+     |       |       |       |       |       |
+     |       |       |       |       |       +-- CloogStatement 3
+     |       |       |       |       |       |
+     |       |       |       |       |       +-- Null scattering function
+     |       |       |       |       |       |
+     |       |       |       |       |       Depth: 2
+     |       |       |       |       |
+     |       |       |       |
+     |       |       |
+     |       |
+     |
+
+
+File: cloog.info,  Node: CloogOptions,  Prev: CloogProgram,  Up: CLooG Data Structures
+
+3.1.10 CloogOptions
+-------------------
+
+     struct cloogoptions
+     { int l ;                     /* -l option.          */
+       int f ;                     /* -f option.          */
+       int strides ;               /* -strides option.    */
+       int sh ;                    /* -sh option.         */
+       int esp ;                   /* -esp option.        */
+       int csp ;                   /* -csp option.        */
+       int fsp ;                   /* -fsp option.        */
+       int otl ;                   /* -otl option.        */
+       int block ;                 /* -block option.      */
+       int cpp ;                   /* -cpp option.        */
+       int compilable ;            /* -compilable option. */
+     } ;
+     typedef struct cloogoptions CloogOptions ;
+
+The `CloogOptions' structure contains all the possible options to rule
+CLooG's behaviour (*note Calling CLooG::).  As a reminder, the default
+values are:
+   * l = -1 (optimize control until the innermost loops),
+
+   * f = 1 (optimize control from the outermost loops),
+
+   * strides = 0 (use only unit strides),
+
+   * sh = 0 (do not simplify convex hulls),
+
+   * esp = 0 (do not spread complex equalities),
+
+   * csp = 1 (spread constant values),
+
+   * fsp = 1 (start to spread from the first iterators),
+
+   * otl = 1 (simplify loops running only once).
+
+   * block = 0 (do not make statement blocks when not necessary).
+
+   * cpp = 0 (do not generate a compilable part of code using
+     preprocessor).
+
+   * compilable = 0 (do not generate a compilable code).
+
+
+File: cloog.info,  Node: CLooG Functions,  Next: Example of Library Utilization,  Prev: CLooG Data Structures,  Up: CLooG Library
+
+3.2 CLooG Functions Description
+===============================
+
+* Menu:
+
+* cloog_program_generate::
+* cloog_program_scatter::
+* cloog_program_pprint::
+* cloog_program_read::
+* From Matrices to Domains and Conversely::
+* Allocation and Initialization Functions::
+* Memory Deallocation Functions::
+* Printing Functions::
+
+
+File: cloog.info,  Node: cloog_program_generate,  Next: cloog_program_scatter,  Up: CLooG Functions
+
+3.2.1 cloog_program_generate
+----------------------------
+
+     CloogProgram   * cloog_program_generate
+     ( CloogProgram * program,       /* Input program. */
+       CloogOptions * options        /* Options. */
+     ) ;
+
+The `cloog_program_generate' function generates the data structure of
+the source code that scans the input polyhedra pointed by `program'
+according to the options pointed by `options'.  The process is made
+directly on the input structure pointed by `program', thus the original
+structure is no longer available after a call to this function. It
+returns a pointer to a `CloogProgram' structure containing the solution
+in CLooG structures.
+
+   The input `CloogProgram' structure must have only one loop level (no
+inner loops): there is one loop per statement block. For a given block,
+the corresponding loop carries the iteration domain, the statement
+block, and a loop stride initialized to 1. For instance, the input
+`CloogProgram' structure that have been sent to
+`cloog_program_generate' to achieve the final structure and code shown
+as example in the `CloogProgram' structure description (*note
+CloogProgram::) was the following one:
+
+     +-- CloogProgram
+     |       |
+     |       Language: c
+     |       |
+     |       Scattering dimension number: 0
+     |       |
+     |       +-- CloogNames
+     |       |       |
+     |       |       Scattering dimension number: 0
+     |       |       |
+     |       |       +-- No scattering string
+     |       |       |
+     |       |       Iterator number -----------: 2
+     |       |       |
+     |       |       +-- Iterator strings ------: i j
+     |       |       |
+     |       |       Parameter number ----------: 1
+     |       |       |
+     |       |       +-- Parameter strings -----: n
+     |       |
+     |       +-- Context
+     |       |       [    1     1    -2  ]
+     |       |
+     |       +-- CloogLoop
+     |       |       |
+     |       |       +-- CloogDomain
+     |       |       |       [    1     1     0     0     0  ]
+     |       |       |       [    1    -1     0     1     0  ]
+     |       |       |       [    1     0     1     0     0  ]
+     |       |       |       [    1     0    -1     1     0  ]
+     |       |       |
+     |       |       Stride: 1
+     |       |       |
+     |       |       +-- CloogBlock
+     |       |       |       |
+     |       |       |       +-- CloogStatement 1
+     |       |       |       |          |
+     |       |       |       |          V
+     |       |       |       |   CloogStatement 2
+     |       |       |       |
+     |       |       |       +-- Null scattering function
+     |       |       |       |
+     |       |       |       Depth: 2
+     |       |       |
+     |       |       V
+     |       |   CloogLoop
+     |       |       |
+     |       |       +-- CloogDomain
+     |       |       |       [    1     1     0     0     0  ]
+     |       |       |       [    1    -1     0     1     0  ]
+     |       |       |       [    1     0     1    -1    -1  ]
+     |       |       |       [    1     0    -1     2     0  ]
+     |       |       |
+     |       |       Stride: 1
+     |       |       |
+     |       |       +-- CloogBlock
+     |       |       |       |
+     |       |       |       +-- CloogStatement 3
+     |       |       |       |
+     |       |       |       +-- Null scattering function
+     |       |       |       |
+     |       |       |       Depth: 2
+     |       |       |
+     |       |
+     |
+
+
+File: cloog.info,  Node: cloog_program_pprint,  Next: cloog_program_read,  Prev: cloog_program_scatter,  Up: CLooG Functions
+
+3.2.2 cloog_program_pprint
+--------------------------
+
+     void cloog_program_pprint
+     ( FILE * file,                  /* Output file. */
+       CloogProgram * program,       /* Program to print. */
+       CloogOptions * options        /* Options. */
+     ) ;
+
+The function `cloog_program_pprint' is a pretty printer for
+`CloogProgram' structures when it is a solution provided by the
+`cloog_program_generate' function. It prints the code or pseudo-code in
+the file pointed by `file' (possibly `stdout') with regards to the
+options pointed by `options'.
+
+
+File: cloog.info,  Node: cloog_program_scatter,  Next: cloog_program_pprint,  Prev: cloog_program_generate,  Up: CLooG Functions
+
+3.2.3 cloog_program_scatter
+---------------------------
+
+     void cloog_program_scatter
+     ( CloogProgram * program,       /* Input program. */
+       CloogDomainList * scattering, /* Additional scattering functions. */
+       char ** names ;               /* Additional dimension names. */
+     ) ;
+
+The function `cloog_program_scatter' applies scattering functions to
+the `CloogProgram' structure pointed by `program'.  Original domains of
+`program' are freed. Scattering functions are inside the
+`CloogDomainList' structure pointed by `scattering'.  There must be as
+many scattering functions in the `CloogDomainList' structure as loops
+(i.e. iteration domains) in the `CloogProgram' structure. The first
+scattering function of the list will be applied to the iteration domain
+of the first loop in the program, and so on.  `names' gives the
+scattering dimension names as an array of strings. If `names' is
+`NULL', names are automatically generated: the name of the n^th
+scattering dimension will be `cn'.
+
+
+File: cloog.info,  Node: cloog_program_read,  Next: From Matrices to Domains and Conversely,  Prev: cloog_program_pprint,  Up: CLooG Functions
+
+3.2.4 cloog_program_read
+------------------------
+
+     CloogProgram * cloog_program_read(FILE *) ;
+The `cloog_program_read' function reads the program data from a CLooG
+input file (*note Writing The Input File::). It takes as input a
+pointer to the file it has to read (possibly `stdin'), and return a
+pointer to the read `CloogProgram' structure.
+
+
+File: cloog.info,  Node: From Matrices to Domains and Conversely,  Next: Allocation and Initialization Functions,  Prev: cloog_program_read,  Up: CLooG Functions
+
+3.2.5 From Matrices to Domains and Conversely
+---------------------------------------------
+
+     CloogMatrix * cloog_domain_domain2matrix(CloogDomain *) ;
+     CloogDomain * cloog_domain_matrix2domain(CloogMatrix *) ;
+Two functions are provided to translate a `CloogDomain' data structure
+to a `CloogMatrix' data structure and conversely.  Each function takes
+as input a pointer to the data structure to translate and returns as
+output a pointer to the translated data structure. The input data
+structure if neither modified nor freed. They may be quite useful for
+e.g. pretty printing since it is more convenient in constraint (matrix)
+representation.
+
+
+File: cloog.info,  Node: Allocation and Initialization Functions,  Next: Memory Deallocation Functions,  Prev: From Matrices to Domains and Conversely,  Up: CLooG Functions
+
+3.2.6 Allocation and Initialization Functions
+---------------------------------------------
+
+     CloogStructure * cloog_structure_malloc() ;
+Each CLooG data structure has an allocation and initialization function
+as shown above, where `Structure' and `structure' have to be replaced
+by the name of the convenient structure (without `Cloog' prefix) for
+instance `CloogLoop * cloog_loop_malloc() ;'. These functions return
+pointers to an allocated structure with fields set to convenient default
+values. *Using those functions is mandatory* to support internal
+management fields and to avoid upward compatibility problems if new
+fields appear. An exception is `cloog_matrix_malloc' since the
+`CloogMatrix' comes directly from the PolyLib. It takes two parameters:
+the number of rows and columns of the matrix we want to allocate:
+     CloogMatrix * cloog_matrix_malloc(unsigned nbrows, unsigned nbcolumns);
+
+
+File: cloog.info,  Node: Memory Deallocation Functions,  Next: Printing Functions,  Prev: Allocation and Initialization Functions,  Up: CLooG Functions
+
+3.2.7 Memory Deallocation Functions
+-----------------------------------
+
+     void cloog_structure_free(CloogStructure *) ;
+Each CLooG data structure has a deallocation function as shown above,
+where `Structure' and `structure' have to be replaced by the name of
+the convenient structure (without `Cloog' prefix) for instance `void
+cloog_loop_free(CloogLoop *) ;'. These functions free the allocated
+memory for the structure provided as input. They free memory
+recursively, i.e. they also free the allocated memory for the internal
+structures.  *Using those functions is mandatory* to avoid memory leaks
+on internal management fields and to avoid upward compatibility
+problems if new fields appear.
+
+
+File: cloog.info,  Node: Printing Functions,  Prev: Memory Deallocation Functions,  Up: CLooG Functions
+
+3.2.8 Printing Functions
+------------------------
+
+     void cloog_structure_print(FILE *, CloogStructure *) ;
+Each CLooG data structure has a printing function as shown above,
+where `Structure' and `structure' have to be replaced by the name of
+the convenient structure (without `Cloog' prefix) for instance `void
+cloog_loop_print(FILE *, CloogLoop *) ;'. These functions print the
+pointed structure (and its fields recursively) to the file provided as
+input (possibly `stdout').
+
+
+File: cloog.info,  Node: Example of Library Utilization,  Prev: CLooG Functions,  Up: CLooG Library
+
+3.3 Example of Library Utilization
+==================================
+
+Here is a basic example showing how it is possible to use the CLooG
+library, assuming that a standard installation has been done.  The
+following C program reads a CLooG input file on the standard input,
+then prints the solution on the standard output.  Options are
+preselected to the default values of the CLooG software.  This example
+is provided in the `example' directory of the CLooG distribution.
+     /* example.c */
+     # include <stdio.h>
+     # include <cloog/cloog.h>
+
+     int main()
+     { CloogProgram * program ;
+       CloogOptions * options ;
+
+       /* Setting options and reading program informations. */
+       options = cloog_options_malloc() ;
+       program = cloog_program_read(stdin,options) ;
+
+       /* Generating and printing the code. */
+       program = cloog_program_generate(program,options) ;
+       cloog_program_pprint(stdout,program,options) ;
+
+       cloog_options_free(options) ;
+       cloog_program_free(program) ;
+       return 0;
+     }
+
+The compilation command could be:
+     gcc example.c -lcloog -o example
+   A calling command with the input file test.cloog could be:
+     more test.cloog | ./example
+
+
+File: cloog.info,  Node: Installing,  Next: Documentation,  Prev: CLooG Library,  Up: Top
+
+4 Installing CLooG
+******************
+
+* Menu:
+
+* License::
+* Requirements::
+* Basic Installation::
+* Optional Features::
+* Uninstallation::
+
+
+File: cloog.info,  Node: License,  Next: Requirements,  Up: Installing
+
+4.1 License
+===========
+
+First of all, it would be very kind to refer the following paper in any
+publication that result from the use of the CLooG software or its
+library, *note Bas04:: (a bibtex entry is provided behind the title
+page of this manual, along with copyright notice, and in the CLooG home
+`http://www.CLooG.org'.
+
+   This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License version 2 as
+published by the Free Software Foundation.  This program is distributed
+in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more
+details.  `http://www.gnu.org/copyleft/gpl.html'
+
+
+File: cloog.info,  Node: Requirements,  Next: Basic Installation,  Prev: License,  Up: Installing
+
+4.2 Requirements
+================
+
+* Menu:
+
+* PolyLib::
+* GMP Library::
+
+
+File: cloog.info,  Node: PolyLib,  Next: GMP Library,  Up: Requirements
+
+4.2.1 PolyLib (mandatory)
+-------------------------
+
+To successfully install CLooG, the user need firstly to install PolyLib
+version 5.22.1 or above (default 64 bits version is satisfying as well
+as 32 bits or GMP multiple precision version).  Polylib can be
+downloaded freely at `http://icps.u-strasbg.fr/PolyLib/' or
+`http://www.irisa.fr/polylib/'. Once downloaded and unpacked (e.g.
+using the `tar -zxvf polylib-5.22.1.tar.gz' command), the user can
+compile it by typing the following commands on the PolyLib's root
+directory:
+
+   * `./configure'
+
+   * `make'
+
+   * And as root: `make install'
+
+   The PolyLib default installation is `/usr/local'. This directory may
+not be inside your library path. To fix the problem, the user should set
+     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+   if your shell is, e.g., bash or
+     setenv LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/lib
+   if your shell is, e.g., tcsh. Add the line to your .bashrc or
+.tcshrc (or whatever convenient file) to make this change permanent.
+Another solution is to ask PolyLib to install in the standard path by
+using the prefix option of the configure script: `./configure
+--prefix=/usr'.
+
+   CLooG makes intensive calls to polyhedral operations, and PolyLib
+functions do the job. Polylib is a free library written in C for the
+manipulation of polyhedra. The library is operating on objects like
+vectors, matrices, lattices, polyhedra, Z-polyhedra, unions of
+polyhedra and a lot of other intermediary structures. It provides
+functions for all the important operations on these structures.
+
+
+File: cloog.info,  Node: GMP Library,  Prev: PolyLib,  Up: Requirements
+
+4.2.2 GMP Library (optional)
+----------------------------
+
+To be able to deal with insanely large coefficient, the user will need
+to install the GNU Multiple Precision Library (GMP for short) version
+4.1.4 or above. It can be freely downloaded from
+`http://www.swox.com/gmp'.  The user can compile it by typing the
+following commands on the GMP root directory:
+
+   * `./configure'
+
+   * `make'
+
+   * And as root: `make install'
+
+   The GMP default installation is `/usr/local', the same method to fix
+a library path problem applies as with PolyLib (*note PolyLib::).
+
+   The PolyLib has to be built using the GMP library by specifying the
+option `--with-libgmp=PATH_TO_GMP' to the PolyLib configure script
+(where `PATH_TO_GMP' is `/usr/local' if you did not change the GMP
+installation directory). Then you have to set the convenient CLooG
+configure script options to buid the GMP version (*note Optional
+Features::).
+
+
+File: cloog.info,  Node: Basic Installation,  Next: Optional Features,  Prev: Requirements,  Up: Installing
+
+4.3 CLooG Basic Installation
+============================
+
+Once downloaded and unpacked (e.g. using the `tar -zxvf cloog-.tar.gz'
+command), you can compile CLooG by typing the following commands on the
+CLooG's root directory:
+
+   * `./configure'
+
+   * `make'
+
+   * And as root: `make install'
+
+   Depending on the location of the PolyLib, you may need to set the
+option `--with-polylib' of the configure script (e.g. `./configure
+--with-polylib=/usr/local' with a default PolyLib installation).
+
+   The program binaries and object files can be removed from the source
+code directory by typing `make clean'. To also remove the files that
+the `configure' script created (so you can compile the package for a
+different kind of computer) type `make distclean'.
+
+   Both the CLooG software and library have been successfully compiled
+on the following systems:
+   * PC's under Linux, with the `gcc' compiler,
+
+   * PC's under Windows (Cygwin), with the `gcc' compiler,
+
+   * Sparc and UltraSparc Stations, with the `gcc' compiler.
+
+
+File: cloog.info,  Node: Optional Features,  Next: Uninstallation,  Prev: Basic Installation,  Up: Installing
+
+4.4 Optional Features
+=====================
+
+The `configure' shell script attempts to guess correct values for
+various system-dependent variables and user options used during
+compilation.  It uses those values to create the `Makefile'. Various
+user options are provided by the CLooG's configure script. They are
+summarized in the following list and may be printed by typing
+`./configure --help' in the CLooG top-level directory.
+
+   * By default, the installation directory is `/usr/local': `make
+     install' will install the package's files in `/usr/local/bin',
+     `/usr/local/lib' and `/usr/local/include'.  The user can specify
+     an installation prefix other than `/usr/local' by giving
+     `configure' the option `--prefix=PATH'.
+
+   * By default, `configure' will look for the PolyLib in standard
+     locations. If necessary, the user can specify the PolyLib path by
+     giving `configure' the option `--with-polylib=PATH'.
+
+   * By default, both CLooG software and library are compiled and
+     installed.  By giving  `configure' the option `--without-cloog'
+     the user disable the compilation and installation of the CLooG
+     software.  By giving `configure' the option `--without-lib' the
+     user disable the compilation and installation of the CLooG library.
+
+   * By default, CLooG is built in 64bits version if such version of the
+     PolyLib is found by `configure'. If the only existing version of
+     the PolyLib is the 32bits or if the user give to `configure' the
+     option `--with-bits=32', the 32bits version of CLooG will be
+     compiled. In the same way, the option `--with-bits=gmp' have to be
+     used to build the multiple precision version.
+
+   * By default, `configure' will look for the GMP library (necessary
+     to build the multiple precision version) in standard locations. If
+     necessary, the user can specify the GMP path by giving `configure'
+     the option `--with-gmp=PATH'.
+
+
+File: cloog.info,  Node: Uninstallation,  Prev: Optional Features,  Up: Installing
+
+4.5 Uninstallation
+==================
+
+The user can easily remove the CLooG software and library from his
+system by typing (as root if necessary) from the CLooG top-level
+directory `make uninstall'.
+
+
+File: cloog.info,  Node: Documentation,  Next: References,  Prev: Installing,  Up: Top
+
+5 Documentation
+***************
+
+The CLooG distribution provides several documentation sources. First,
+the source code itself is as documented as possible. The code comments
+use a Doxygen-compatible presentation (something similar to what
+JavaDoc does for JAVA). The user may install Doxygen (see
+`http://www.stack.nl/~dimitri/doxygen') to automatically generate a
+technical documentation by typing `make doc' or `doxygen
+./autoconf/Doxyfile' at the CLooG top-level directory after running the
+configure script (*note Installing::). Doxygen will generate
+documentation sources (in HTML, LaTeX and man) in the `doc/source'
+directory of the CLooG distribution.
+
+   The Texinfo sources of the present document are also provided in the
+`doc' directory. You can build it in either DVI format (by typing
+`texi2dvi cloog.texi') or PDF format (by typing `texi2pdf cloog.texi')
+or HTML format (by typing `makeinfo --html cloog.texi', using
+`--no-split' option to generate a single HTML file) or info format (by
+typing `makeinfo cloog.texi').
+
+
+File: cloog.info,  Node: References,  Prev: Documentation,  Up: Top
+
+6 References
+************
+
+   * [Bas03a] C. Bastoul, P. Feautrier. Improving data locality by
+     chunking. CC'12 International Conference on Compiler Construction,
+     LNCS 2622, pages 320-335, Warsaw, april 2003.
+
+   * [Bas03b] C. Bastoul. Efficient code generation for automatic
+     parallelization and optimization. ISPDC'03 IEEE International
+     Symposium on Parallel and Distributed Computing, pages 23-30,
+     Ljubljana, october 2003.
+
+   * [Bas04] C. Bastoul. Code Generation in the Polyhedral Model Is
+     Easier Than You Think. PACT'13 IEEE International Conference on
+     Parallel Architecture and Compilation Techniques, pages 7-16,
+     Juan-les-Pins, september 2004.
+
+   * [Fea92] P. Feautrier Some efficient solutions to the affine
+     scheduling problem, part II: multidimensional time.  International
+     Journal of Parallel Programming, 21(6):389-420, December 1992.
+
+   * [Gri04] M. Griebl. Automatic parallelization of loop programs for
+     distributed memory architectures. Habilitation Thesis. Faculta"t
+     fu"r Mathematik und Informatik, Universita"t Passau, 2004.
+     _http://www.infosun.fmi.uni-passau.de/cl/loopo/_
+
+   * [Qui00] F. Quillere', S. Rajopadhye, and D. Wilde.  Generation of
+     efficient nested loops from polyhedra.  International Journal of
+     Parallel Programming, 28(5):469-498, october 2000.
+
+   * [Wil93] Doran K. Wilde.  A library for doing polyhedral operations.
+     Technical Report 785, IRISA, Rennes, France, 1993.
+
+
+
+
+Tag Table:
+Node: Top1558
+Node: Introduction2976
+Node: Basics5402
+Node: Scattering8034
+Node: CLooG Software12659
+Node: A First Example12920
+Node: Writing The Input File15836
+Node: Domain Representation20114
+Node: Scattering Representation22546
+Node: Calling CLooG26218
+Node: CLooG Options27006
+Node: Last Depth to Optimize Control27480
+Node: First Depth to Optimize Control29073
+Node: Simplify Convex Hull30158
+Node: Once Time Loop Elimination31465
+Node: Equality Spreading32054
+Node: Constant Spreading32693
+Node: First Level for Spreading33418
+Node: C PreProcessor Friendly34366
+Node: Statement Block35468
+Node: Loop Strides36239
+Node: Compilable Code37032
+Node: Output38700
+Node: Help38999
+Node: Version39206
+Node: Full Example39426
+Node: CLooG Library44468
+Node: CLooG Data Structures45450
+Node: CloogMatrix45931
+Node: CloogDomain48201
+Node: CloogDomainList50092
+Node: CloogStatement50499
+Node: CloogBlock51460
+Node: CloogBlockList52635
+Node: CloogLoop53026
+Node: CloogNames54228
+Node: CloogProgram55617
+Node: CloogOptions61884
+Node: CLooG Functions63533
+Node: cloog_program_generate63987
+Node: cloog_program_pprint67568
+Node: cloog_program_scatter68255
+Node: cloog_program_read69399
+Node: From Matrices to Domains and Conversely69895
+Node: Allocation and Initialization Functions70715
+Node: Memory Deallocation Functions71798
+Node: Printing Functions72653
+Node: Example of Library Utilization73242
+Node: Installing74564
+Node: License74799
+Node: Requirements75658
+Node: PolyLib75832
+Node: GMP Library77488
+Node: Basic Installation78482
+Node: Optional Features79619
+Node: Uninstallation81671
+Node: Documentation81957
+Node: References83081
+Ref: Bas03a83184
+Ref: Bas03b83375
+Ref: Bas0483606
+Ref: Fea9283847
+Ref: Gri0484053
+Ref: Qui0084313
+Ref: Wil9384511
+
+End Tag Table

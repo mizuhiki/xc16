@@ -1,0 +1,80 @@
+
+t.exe:     file format coff-pic30
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .reset        00000004  00000000  00000000  000002b0  2**1
+                  CONTENTS, ALLOC, LOAD, CODE
+  1 .xdata        0000000a  00000800  00000800  000002b8  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD, XMEMORY
+  2 .ydata        00000008  00003000  00003000  000002cc  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD, YMEMORY
+  3 .data         0000000a  0000080a  0000080a  000002dc  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD
+  4 .b1           0000000a  00000814  00000814  00000000  2**1
+                  ALLOC
+  5 .b2           0000000a  0000081e  0000081e  00000000  2**1
+                  ALLOC
+  6 .d1           0000000a  00000828  00000828  000002f0  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD
+  7 .b3           0000000a  00000832  00000832  00000000  2**1
+                  ALLOC
+  8 .d2           0000000a  0000083c  0000083c  00000304  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD
+  9 .dconst       00000008  00000846  00000846  00000318  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD
+ 10 .const        0000000a  00008100  00000100  00000328  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, PSV
+ 11 .r1           0000000a  0000810a  0000010a  0000033c  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, PSV
+ 12 .dinit        00000070  00000114  00000114  00000350  2**1
+                  CONTENTS, ALLOC, LOAD, CODE
+ 13 .x1           0000000a  00000184  00000184  00000430  2**1
+                  CONTENTS, ALLOC, LOAD, CODE
+ 14 .isr          00000004  0000018e  0000018e  00000444  2**1
+                  CONTENTS, ALLOC, LOAD, CODE
+ 15 .text         00000002  00000192  00000192  0000044c  2**1
+                  CONTENTS, ALLOC, LOAD, CODE
+
+t.exe:     file format coff-pic30
+
+Contents of section .reset:
+ 0000 920104 000000                ......      
+Contents of section .xdata:
+ 0800 41424344 45464748 4900               ABCDEFGHI.      
+Contents of section .ydata:
+ 3000 61626364 65666700                    abcdefg.        
+Contents of section .data:
+ 080a 4a4b4c4d 4e4f5051 5253               JKLMNOPQRS      
+Contents of section .d1:
+ 0828 68696a6b 6c6d6e6f 7071               hijklmnopq      
+Contents of section .d2:
+ 083c 72737475 76777879 7a00               rstuvwxyz.      
+Contents of section .dconst:
+ 0846 54555657 58595a00                    TUVWXYZ.        
+Contents of section .const:
+ 8100 43434343 43434343 4343               CCCCCCCCCC      
+Contents of section .r1:
+ 810a 43434343 43434343 4343               CCCCCCCCCC      
+Contents of section .dinit:
+ 0114 0a0800 0a0000 010000 4a4b00  .........JK.
+ 011c 4c4d00 4e4f00 505100 525300  LM.NO.PQ.RS.
+ 0124 003000 080000 010000 616200  .0.......ab.
+ 012c 636400 656600 670000 140800  cd.ef.g.....
+ 0134 0a0000 000000 000800 0a0000  ............
+ 013c 010000 414200 434400 454600  ...AB.CD.EF.
+ 0144 474800 490000 460800 080000  GH.I..F.....
+ 014c 010000 545500 565700 585900  ...TU.VW.XY.
+ 0154 5a0000 1e0800 0a0000 000000  Z...........
+ 015c 280800 0a0000 010000 686900  (........hi.
+ 0164 6a6b00 6c6d00 6e6f00 707100  jk.lm.no.pq.
+ 016c 320800 0a0000 000000 3c0800  2........<..
+ 0174 0a0000 010000 727300 747500  ......rs.tu.
+ 017c 767700 787900 7a0000 000000  vw.xy.z.....
+Contents of section .x1:
+ 0184 434300 434300 434300 434300  CC.CC.CC.CC.
+ 018c 434300                       CC.         
+Contents of section .isr:
+ 018e 0040da 0000fe                .@....      
+Contents of section .text:
+ 0192 0060da                       .`.         

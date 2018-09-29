@@ -1,0 +1,12 @@
+
+excerpt from xc16-objdump (-h option):
+
+  1 bss_810       00000002  00000810  00000810  00000000  2**1
+                  ALLOC, ABSOLUTE
+  2 data_820      00000002  00000820  00000820  00000178  2**1
+                  CONTENTS, ALLOC, DATA, NEVER_LOAD, ABSOLUTE
+  3 code_210      00000002  00000210  00000210  0000017c  2**1
+                  CONTENTS, ALLOC, LOAD, CODE, ABSOLUTE
+  4 psv_220       00000002  00008220  00000220  00000180  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, PSV, ABSOLUTE
+
